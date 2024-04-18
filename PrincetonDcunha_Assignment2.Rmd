@@ -1,0 +1,316 @@
+---
+title: 'CIND 123 - Data Analytics: Basic Methods'
+author: 
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+<center> <h1> Assignment 2 (10%) </h1> </center>
+<center> <h2> Total 100 Marks (5 Bonus upto 100)</h2> </center>
+<center> <h3> Princeton Dcunha </h3> </center>
+<center> <h3> DHA 501150458 </h3> </center>
+---
+
+## Instructions 
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. Review this website for more details on using R Markdown <http://rmarkdown.rstudio.com>.
+
+Use RStudio for this assignment. Complete the assignment by inserting your R code wherever you see the string "#INSERT YOUR ANSWER HERE".
+
+When you click the **Knit** button, a document (PDF, Word, or HTML format) will be generated that includes both the assignment content as well as the output of any embedded R code chunks.
+
+Submit **both**  the rmd and generated output files. Failing to submit both files will be subject to mark deduction.
+
+## Sample Question and Solution
+
+Use `seq()` to create the vector [3,5, ... ,29).
+
+```{r}
+seq(3, 30, 2)
+seq(3, 29, 2)
+```
+
+
+
+
+## Question 1 (40 points)
+
+The Titanic Passenger Survival Data Set provides information on the fate of passengers on the fatal maiden voyage of the ocean liner "Titanic." The dataset is available from the Department of Biostatistics at the Vanderbilt University School of Medicine (https://biostat.app.vumc.org/wiki/pub/Main/DataSets/titanic3.csv)in several formats. store the Titanic Data Set `titanic_train` using the following commands. 
+
+
+```{r}
+#install.packages("titanic")
+library(titanic)
+titanicDataset <- read.csv(file = "https://biostat.app.vumc.org/wiki/pub/Main/DataSets/titanic3.csv",stringsAsFactors = F)
+summary(titanicDataset)
+
+# if you get the following error message when you knit 
+#     Error in contrib.url(repos,"source")
+# you can fix it in 2 ways
+# Method 1: comment out the install.packages() in your code
+# Method 2: add specific repos address in the install.package() comments, e.g. install.packages("package_name", repos = "http://cran.us.r-project.org")
+
+```
+
+a) Extract and show the columns `sex`, `age`, `fare`, `cabin` and `survived` into a new data frame of the name 'titanicSubset'. (5 points)
+```{r}
+titanicSubset <- data.frame(titanicDataset$sex,titanicDataset$age,titanicDataset$fare,titanicDataset$cabin,titanicDataset$survived)
+names(titanicSubset) <- c("sex","age","fare","cabin","survived")
+head(titanicSubset)
+```
+
+
+b) Numerical data: Use the count() function from the `dplyr` package to display the total number of passengers within each Ticket Class `Pclass`. (5 points) 
+HINT: use %>% to pipe the dataframe to count().
+```{r}
+library(dplyr)
+
+titanicDataset %>% count(pclass,name="Total Number of Passengers")
+```
+
+
+c) Categorical data: Use count() and group_by() functions from the `dplyr` package to calculate the number of passengers by `sex`. (5 points)
+HINT: use group_by() first then pipe the result to count() to calculate the number of passengers per 
+```{r}
+titanicGrouping <- titanicDataset %>% group_by(sex)
+titanicGrouping %>% count(sex,name="Total Number of Passengers")
+```
+
+
+d) Use the aggregate() function to calculate the 'survivalCount' of each `sex` and calculate the survival rate of each sex. Then draw the conclusion on which sex has the higher survival rate. (5 points) 
+```{r}
+#Survival Count of Each Sex
+survcount <- aggregate(x=list(SurvivalCount=titanicDataset$survived),by=list(sex=titanicDataset$sex),FUN=sum)
+survcount
+
+#Survival Rate of Each Sex
+survivalrate <- function(x){
+  sum(x)/length(x)*100
+}
+
+survrate <- aggregate(x=list(SurvivalRate=titanicDataset$survived),by=list(sex=titanicDataset$sex),FUN=survivalrate)
+survrate
+
+#Conclusion
+paste(survrate$sex[which(survrate$SurvivalRate == max(survrate$SurvivalRate))], "has the highest survival rate =", round(max(survrate$SurvivalRate),2),"%")
+```
+
+
+e) Using boxplot to display the distribution of age for each sex and infer if male or female group is older. (5 points)
+```{r}
+#Boxplot
+femaleAge <- na.omit(titanicDataset$age[which(titanicDataset$sex == "female")])
+maleAge <- na.omit(titanicDataset$age[which(titanicDataset$sex == "male")])
+titanicsboxplot <- boxplot(femaleAge,maleAge,xlab="Age",ylab="Sex",horizontal = TRUE,names = c("Female","Male"))
+titanicsboxplot
+
+#Older Group?
+if(titanicsboxplot$stats[3,1]>titanicsboxplot$stats[3,2])
+    paste("Female group is older with Median Age =",titanicsboxplot$stats[3,1]) else
+    paste("Male group is older with Median Age =",titanicsboxplot$stats[3,2])
+
+```
+
+
+f) Calculate the average age for male and female and describe if the calculation agrees with the box plot. (5 points)
+```{r}
+#Average Age of Male
+avgmale <- mean(maleAge)
+avgmale
+
+#Average Age of Female
+avgfemale <- mean(femaleAge)
+avgfemale
+
+#Box Plot gives us the value of median and not mean. If we look at the value of mean calculated above against the median value retrieved from Box Plot Stats in question (e), we can see that the value of mean is higher than that of median. The Box Plot shows that the distribution is skewed to the right. In this situation, the mean shifts to the right making the value of the mean greater than the median. This is the same behavior we are currently seeing for the Age of Female & Male, above. Hence the results of the calculation agrees with the box plot.
+```
+
+g) Use the for loop and if control statements to list the women’s names, age 34 or more that embarked from S (Southampton), on the Titanic. (10 points)
+```{r}
+for (i in 1:length(titanicDataset$name)){
+  if(titanicDataset$sex[i]=="female"){
+    if(!is.na(titanicDataset$age[i])){
+      if(titanicDataset$age[i]>=34){
+        if(titanicDataset$embarked[i]=='S')
+          print(titanicDataset$name[i])
+      }
+    }
+  }
+}
+```
+
+
+
+
+## Question 2 (20 points)
+
+In a shipment of 20 engines, history shows that the probability of any one engine proving unsatisfactory is 0.1
+
+a) The probability that all 20 engines are satisfactory: (5 points)
+```{r}
+dbinom(20,20,0.9)
+```
+
+
+b) Use the Binomial approximation to calculate the probability that more than 10 engines are defective? (5 points)
+```{r}
+pbinom(10,20,0.1,lower.tail = FALSE)
+```
+
+
+c) Use the binomial approximation to calculate the probability that at most three engines are defective? (5 points)
+```{r}
+pbinom(3,20,0.1)
+```
+
+d) What is the probability that the second engine is defective given the first engine is not defective? From the result, draw the conclusion if the first and second engines are dependent or independent. (5 points)
+```{r}
+Pa <- 0.9 #P(A) (Probability of First Engine is not Defective)
+Pb <- 0.1 #P(B) (Probability of Second Engine is Defective)
+
+#P(AB) (Joint Probability of First Engine is not Defective & Second Engine is Defective)
+Paib <- Pa*Pb
+Paib
+
+#P(B/A) (Probability of the Second Engine is Defective given that the First Engine is not Defective)
+Pba <- Paib/Pa
+Pba
+
+#Conclusion: The first and second engines are independent because the value of Pba ( 'P(B/A)' ) is equal to value of Pb ( 'P(B)' ). Hence making it P(AB) = P(A)*P(B) which is the property of Independent events.
+```
+
+
+
+
+## Question 3 (25 points)
+
+On average, John goes to his parents' place twice a week for visits. 
+
+a) Find the probabilities that John goes to his parents' place 0 to 5 times in a week? (5 points)
+```{r}
+#0 times in a week
+dpois(0,2)
+
+#1 time in a week
+dpois(1,2)
+
+#2 times in a week
+dpois(2,2)
+
+#3 times in a week
+dpois(3,2)
+
+#4 times in a week
+dpois(4,2)
+
+#5 times in a week
+dpois(5,2)
+```
+
+
+b) Find the probability that John goes to his parents' place 3 times or less in a week? (5 points)
+```{r}
+ppois(3,2)
+```
+
+
+c) Compare the similarity between Binomial and Poisson distribution. (15 points @ 5 point each)
+1) Create 100,000 samples for a Binomial random variable using parameters described in Question 2
+2) Create 100,000 samples for a Poisson random variable using parameters described in Question 3
+3) then illustrate on how well the Poisson probability distribution approximates the Binomial probability distribution. (BONUS)
+HINT: use multhist() from the 'plotrix' package
+```{r}
+bdist <- rbinom(100000,20,0.1)
+head(bdist)
+str(bdist)
+
+pdist <- rpois(100000,2)
+head(pdist)
+str(pdist)
+
+library(plotrix)
+multhist(list(bdist,pdist),main="Binomial Distribution Vs Poisson Distribution",xlab="Samples",ylab="Frequency")
+```
+
+
+
+
+## Question 4 (20 points)
+
+Write a script in R to compute the following probabilities of a normal random variable with mean 16 and variance 9
+
+a) lies between 14.4 and 20.3 (inclusive) (5 points)
+```{r}
+#Script
+probnorm <- function(x1,x2,meanval,variance,method)
+{
+  stdev <- sqrt(variance)
+  switch(method,
+        "lessthan"=pnorm(x1,meanval,stdev),
+        "greaterthan"=pnorm(x1,meanval,stdev,lower.tail = FALSE),
+        "between"=probnorm(x2,meanval = meanval,variance = variance,method="lessthan")-probnorm(x1,meanval = meanval,variance = variance,method="lessthan"),
+        "outside"=probnorm(x1,meanval = meanval,variance = variance,method = "lessthan")+probnorm(x2,meanval = meanval,variance = variance,method = "greaterthan"))
+}
+
+#Probability
+probnorm(x1=14.4,x2=20.3,meanval=16,variance=9,method="between")
+```
+
+
+b) is greater than 21.8 (5 points)
+```{r}
+#Script
+probnorm <- function(x1,x2,meanval,variance,method)
+{
+  stdev <- sqrt(variance)
+  switch(method,
+        "lessthan"=pnorm(x1,meanval,stdev),
+        "greaterthan"=pnorm(x1,meanval,stdev,lower.tail = FALSE),
+        "between"=probnorm(x2,meanval = meanval,variance = variance,method="lessthan")-probnorm(x1,meanval = meanval,variance = variance,method="lessthan"),
+        "outside"=probnorm(x1,meanval = meanval,variance = variance,method = "lessthan")+probnorm(x2,meanval = meanval,variance = variance,method = "greaterthan"))
+}
+
+#Probability
+probnorm(x1=21.8,meanval=16,variance=9,method="greaterthan")
+```
+
+
+c) is less than or equal to 10.5 (5 points)
+```{r}
+#Script
+probnorm <- function(x1,x2,meanval,variance,method)
+{
+  stdev <- sqrt(variance)
+  switch(method,
+        "lessthan"=pnorm(x1,meanval,stdev),
+        "greaterthan"=pnorm(x1,meanval,stdev,lower.tail = FALSE),
+        "between"=probnorm(x2,meanval = meanval,variance = variance,method="lessthan")-probnorm(x1,meanval = meanval,variance = variance,method="lessthan"),
+        "outside"=probnorm(x1,meanval = meanval,variance = variance,method = "lessthan")+probnorm(x2,meanval = meanval,variance = variance,method = "greaterthan"))
+}
+
+#Probability
+probnorm(x1=10.5,meanval=16,variance=9,method="lessthan")
+```
+
+
+d) is less than 13 or greater than 19 (5 points)
+```{r}
+#Script
+probnorm <- function(x1,x2,meanval,variance,method)
+{
+  stdev <- sqrt(variance)
+  switch(method,
+        "lessthan"=pnorm(x1,meanval,stdev),
+        "greaterthan"=pnorm(x1,meanval,stdev,lower.tail = FALSE),
+        "between"=probnorm(x2,meanval = meanval,variance = variance,method="lessthan")-probnorm(x1,meanval = meanval,variance = variance,method="lessthan"),
+        "outside"=probnorm(x1,meanval = meanval,variance = variance,method = "lessthan")+probnorm(x2,meanval = meanval,variance = variance,method = "greaterthan"))
+}
+
+#Probability
+probnorm(x1=13,x2=19,meanval=16,variance=9,method="outside")
+```
+
+
+END of Assignment #2.
